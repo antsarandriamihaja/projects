@@ -50,21 +50,24 @@ def get_twitter_data(consumer_key, consumer_secret, token_key, token_secret, han
     # GetUserTimeLine method will return only up to 3200 most recent tweets.
     # Since the requirement was to get 30 days of tweets, and that the maximum I can go back to is only 7 days, getting the max tweets was a reasonable workaround
     result = api.GetUserTimeline(screen_name=handle, count=3200)
-    tweets = [tweet.AsDict() for tweet in result]
-    summary_results = []
-    for tweet in tweets:
-        res = {
-            "created_at": tweet["created_at"],
-            "text": tweet["text"],
-            "location": tweet["user"]["location"],
-            "screen_name": tweet["user"]["screen_name"],
-            "name": tweet["user"]["name"]
-        }
-        summary_results.append(res)
+    if (len(result) > 0): #if there was any tweet found (up to 7days history can be retrieved)
+        tweets =[tweet.AsDict() for tweet in result]
+        summary_results =[]
+        for tweet in tweets:
+            res = {
+                "created_at": tweet["created_at"],
+                "text": tweet["text"],
+                "location": tweet["user"]["location"],
+                "screen_name": tweet["user"]["screen_name"],
+                "name": tweet["user"]["name"]
+            }
+            summary_results.append(res)
 
-    #write json data
-    with open(json_file, 'w') as outfile:
-        json.dump(summary_results, outfile, indent=4, sort_keys=True)
+        # write json data
+        with open(json_file, 'w') as outfile:
+            json.dump(summary_results, outfile, indent=4, sort_keys=True)
+
+
 
 
 ### LOADING DATA TO BIGQUERY
@@ -128,8 +131,14 @@ def get_newline_json(json_file):
 
 def load_json_to_bq(json_file,company, handle):
     import google.cloud.bigquery as bq
+    import os
+
+    if not(os.path.exists(json_file)):
+        print("No tweet was created by {} in the last 7 days: nothing to upload to BigQuery".format(handle))
+        return
 
     #convert JSON to newline delimited JSON format
+
     file_to_load = get_newline_json(json_file)
 
     client = bq.Client()
