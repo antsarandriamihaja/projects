@@ -49,24 +49,53 @@ def get_twitter_data(consumer_key, consumer_secret, token_key, token_secret, han
     # Twitter API does not allow to get/search for tweets by date directly
     # GetUserTimeLine method will return only up to 3200 most recent tweets.
     # Since the requirement was to get 30 days of tweets, and that the maximum I can go back to is only 7 days, getting the max tweets was a reasonable workaround
+
     result = api.GetUserTimeline(screen_name=handle, count=3200)
-    if (len(result) > 0): #if there was any tweet found (up to 7days history can be retrieved)
+
+    if (len(result) > 0): #if there was any tweet posted by the specified user handle (up to 7days history can be retrieved)
         tweets =[tweet.AsDict() for tweet in result]
-        summary_results =[]
-        for tweet in tweets:
-            res = {
-                "created_at": tweet["created_at"],
-                "text": tweet["text"],
-                "location": tweet["user"]["location"],
-                "screen_name": tweet["user"]["screen_name"],
-                "name": tweet["user"]["name"]
-            }
-            summary_results.append(res)
+        tweets_posted = get_all_tweets(tweets)
 
         # write json data
         with open(json_file, 'w') as outfile:
-            json.dump(summary_results, outfile, indent=4, sort_keys=True)
+            json.dump(tweets_posted, outfile, indent=4, sort_keys=True)
 
+
+    else: #if the user didn't update their status in the last 7days, retrieve tweets that mention the user and store them in file
+        query = 'q=to%3A' + handle
+        mentions = api.GetSearch(raw_query=query)
+
+        if (len(mentions) > 0): #if there were any mentions found, write it to json file
+            tweets = [tweet.AsDict() for tweet in mentions]
+            tweets_mentionned = get_all_tweets(tweets)
+
+            #   write json data
+            with open(json_file, 'w') as outfile:
+                json.dump(tweets_mentionned, outfile, indent=4, sort_keys=True)
+
+
+def get_all_tweets(tweets):
+
+    tweets_found = []
+    for tweet in tweets:
+        location = None
+        retweet_count = 0
+        if ("location" in tweet["user"]):
+            location = tweet["user"]["location"]
+        if ("retweet_count" in tweet):
+            retweet_count = tweet["retweet_count"]
+        res = {
+            "created_at": tweet["created_at"],
+            "text": tweet["text"],
+            "location": location,
+            "screen_name": tweet["user"]["screen_name"],
+            "name": tweet["user"]["name"],
+            "hashtags": tweet["hashtags"],
+            "retweet_count": retweet_count
+        }
+        tweets_found.append(res)
+
+    return tweets_found
 
 
 
