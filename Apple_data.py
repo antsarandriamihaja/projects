@@ -97,9 +97,10 @@ def get_twitter_data(consumer_key, consumer_secret, token_key, token_secret, han
         tweets =[tweet.AsDict() for tweet in result]
         tweets_posted = get_all_tweets(tweets, delay)
 
-        # write json data
-        with open(json_file, 'w') as outfile:
-            json.dump(tweets_posted, outfile, indent=4, sort_keys=True)
+        if len(tweets_posted>0):
+            # write json data
+            with open(json_file, 'w') as outfile:
+                json.dump(tweets_posted, outfile, indent=4, sort_keys=True)
 
     # GetSearch with the below query returns tweets that mention {handle}
     else:
@@ -108,11 +109,12 @@ def get_twitter_data(consumer_key, consumer_secret, token_key, token_secret, han
 
         if (len(mentions) > 0): #if there were any mentions found, write it to json file
             tweets = [tweet.AsDict() for tweet in mentions]
-            tweets_mentionned = get_all_tweets(tweets)
+            tweets_mentionned = get_all_tweets(tweets, delay)
 
-            #   write json data
-            with open(json_file, 'w') as outfile:
-                json.dump(tweets_mentionned, outfile, indent=4, sort_keys=True)
+            if len(tweets_mentionned>0):
+                #   write json data
+                with open(json_file, 'w') as outfile:
+                    json.dump(tweets_mentionned, outfile, indent=4, sort_keys=True)
 
 
 def get_all_tweets(tweets, delay):
