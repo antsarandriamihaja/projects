@@ -319,8 +319,8 @@ def run():
     app_args= parser.parse_args()
     get_financial_data(app_args.COMPANY,app_args.FROM_DAYS,app_args.FILEPATH, app_args.BARCHART_KEY)
     get_twitter_data(app_args.CONSUMER_KEY, app_args.CONSUMER_SECRET, app_args.TOKEN_KEY, app_args.TOKEN_SECRET, app_args.TWITTER_HANDLE, app_args.JSON_FILEPATH, app_args.FROM_DAYS)
-    #load_csv_to_bq(app_args.FILEPATH,app_args.COMPANY)
-    #load_json_to_bq(app_args.JSON_FILEPATH, app_args.COMPANY, app_args.TWITTER_HANDLE)
+    load_csv_to_bq(app_args.FILEPATH,app_args.COMPANY)
+    load_json_to_bq(app_args.JSON_FILEPATH, app_args.COMPANY, app_args.TWITTER_HANDLE)
 
 
 
