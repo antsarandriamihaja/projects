@@ -97,10 +97,9 @@ def get_twitter_data(consumer_key, consumer_secret, token_key, token_secret, han
         tweets =[tweet.AsDict() for tweet in result]
         tweets_posted = get_all_tweets(tweets, delay)
 
-        if len(tweets_posted>0):
             # write json data
-            with open(json_file, 'w') as outfile:
-                json.dump(tweets_posted, outfile, indent=4, sort_keys=True)
+        with open(json_file, 'w') as outfile:
+            json.dump(tweets_posted, outfile, indent=4, sort_keys=True)
 
     # GetSearch with the below query returns tweets that mention {handle}
     else:
@@ -111,10 +110,10 @@ def get_twitter_data(consumer_key, consumer_secret, token_key, token_secret, han
             tweets = [tweet.AsDict() for tweet in mentions]
             tweets_mentionned = get_all_tweets(tweets, delay)
 
-            if len(tweets_mentionned>0):
-                #   write json data
-                with open(json_file, 'w') as outfile:
-                    json.dump(tweets_mentionned, outfile, indent=4, sort_keys=True)
+
+            #   write json data
+            with open(json_file, 'w') as outfile:
+                json.dump(tweets_mentionned, outfile, indent=4, sort_keys=True)
 
 
 def get_all_tweets(tweets, delay):
@@ -133,10 +132,13 @@ def get_all_tweets(tweets, delay):
     now = datetime.datetime.now()
     start_date = now + datetime.timedelta(-delay)
     end_date = now
+    date_format = '%a %b %d %H:%M:%S +0000 %Y'
 
     tweets_found = []
     for tweet in tweets:
-        if tweet["created_at"] < end_date and tweet["created_at"] > start_date:
+        created = tweet["created_at"]
+        created = datetime.datetime.strptime(created, date_format)
+        if created< end_date and created > start_date:
 
             location = None
             retweet_count = 0
@@ -317,8 +319,8 @@ def run():
     app_args= parser.parse_args()
     get_financial_data(app_args.COMPANY,app_args.FROM_DAYS,app_args.FILEPATH, app_args.BARCHART_KEY)
     get_twitter_data(app_args.CONSUMER_KEY, app_args.CONSUMER_SECRET, app_args.TOKEN_KEY, app_args.TOKEN_SECRET, app_args.TWITTER_HANDLE, app_args.JSON_FILEPATH, app_args.FROM_DAYS)
-    load_csv_to_bq(app_args.FILEPATH,app_args.COMPANY)
-    load_json_to_bq(app_args.JSON_FILEPATH, app_args.COMPANY, app_args.TWITTER_HANDLE)
+    #load_csv_to_bq(app_args.FILEPATH,app_args.COMPANY)
+    #load_json_to_bq(app_args.JSON_FILEPATH, app_args.COMPANY, app_args.TWITTER_HANDLE)
 
 
 
