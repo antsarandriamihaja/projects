@@ -1,9 +1,33 @@
+import ondemand
+import csv
+import twitter
+import datetime
+import json
+import ndjson
+import os
+import argparse
+import logging
+
+from google.cloud.exceptions import NotFound
+import google.cloud.bigquery as bq
+
+### RETRIEVING DATA
 
 def get_financial_data(company, delay, destPath, barchartKey):
-    #get {company}'s last {delay} days of stock data from barchart using {barchartKey}. The data will be saved as a csv file in {destPath}
-    import ondemand
-    import csv
-    import datetime
+
+    """Get {company}'s last {delay} days of stock data from barchart using {barchartKey}. The data will be saved as a csv file in {destPath}.
+    Args:
+        company (str) [REQUIRED]:
+            The symbol for the company you wish to get stock data for.
+        delay (int) [OPTIONAL]:
+            Number of days from today's date you wish to get stock data for. Default is 30 days.
+        destPath (str) [OPTIONAL]:
+            file path to save data in .csv format. Default is "financial_data.csv"
+        barchartKey (str) [REQUIRED]:
+            Unique API Key to access Barchart's data.
+    Returns:
+        (None) Saves data in .csv file to provided destination path.
+    """
 
     # start date is 30 days from today's date
     start_date = datetime.datetime.now() + datetime.timedelta(-delay)
@@ -35,8 +59,27 @@ def get_financial_data(company, delay, destPath, barchartKey):
 
 
 def get_twitter_data(consumer_key, consumer_secret, token_key, token_secret, handle, json_file, delay):
-    import twitter
-    import json
+
+    """Get all tweets posted by {handle} in a given time frame determined with {delay}. The results are saved to {json_file}.
+    If no tweet was found, tweets that mention {handle} will be saved instead in {json_file}
+    Args:
+        consumer_key (str) [REQUIRED]:
+            Your unique consumer_key from twitter
+        consumer_secret (str) [REQUIRED]:
+            Your unique consumer_secret from twitter
+        token_key (str) [REQUIRED]:
+            Your unique token_key from twitter
+        token_secret (str) [REQUIRED]:
+            Your unique token_secret from twitter
+        handle (str) [REQUIRED]:
+            The twitter handle for which you wish to retrieve tweets for
+        json_file (str) [OPTIONAL]:
+            The json file path where you wish to save your tweet results. Default is "tweets.json"
+        delay (int) [OPTIONAL]:
+            Number of days from today's date you wish to get stock data for. Default is 30 days.
+    Returns:
+        (None) Saves tweets found in .json file to provided destination path. If no tweets found, nothing to be saved.
+    """
 
     #authenticate to twitter
     api = twitter.Api(consumer_key=consumer_key,
@@ -58,7 +101,7 @@ def get_twitter_data(consumer_key, consumer_secret, token_key, token_secret, han
         with open(json_file, 'w') as outfile:
             json.dump(tweets_posted, outfile, indent=4, sort_keys=True)
 
-
+    # GetSearch with the below query returns tweets that mention {handle}
     else:
         query = 'q=to%3A' + handle
         mentions = api.GetSearch(raw_query=query)
@@ -73,7 +116,18 @@ def get_twitter_data(consumer_key, consumer_secret, token_key, token_secret, han
 
 
 def get_all_tweets(tweets, delay):
-    import datetime
+
+
+    """Parses found tweets and return only some fields in the tweets object, and only if the tweets were created in a timeframe determined by {delay}
+    Args:
+        tweets (Array) :
+            Array of tweets returned from twitter api call.
+        delay (int):
+            Number of days from today's date you wish to get stock data for. Default is 30 days.
+    Returns:
+        (Array) Parsed tweet results.
+    """
+
     now = datetime.datetime.now()
     start_date = now + datetime.timedelta(-delay)
     end_date = now
@@ -108,10 +162,17 @@ def get_all_tweets(tweets, delay):
 
 
 def dataset_exists(client, dataset_reference):
-    #Return if a dataset exists.
 
-    from google.cloud.exceptions import NotFound
 
+    """Checks if a dataset exists on BigQuery
+     Args:
+           client (object) :
+               Authenticated BigQuery Client
+           dataset_reference (object):
+                Dataset reference to check
+       Returns:
+           (Boolean) True if dataset already exists.
+       """
     try:
         client.get_dataset(dataset_reference)
         return True
@@ -120,7 +181,17 @@ def dataset_exists(client, dataset_reference):
 
 
 def load_csv_to_bq(csv_file, company):
-    import google.cloud.bigquery as bq
+
+    """Loads CSV data from local file system to BigQuery
+     Args:
+           csv_file (str) :
+               Path to CSV file to upload to BigQuery
+           company (str):
+               Company symbol that will serve as dataset ID in BigQuery.
+     Returns:
+           (None) Prints upload job result to command line.
+     """
+
     client = bq.Client()
     dataset_id = company
     dataset_ref = client.dataset(dataset_id)
@@ -149,9 +220,14 @@ def load_csv_to_bq(csv_file, company):
         job.output_rows, dataset_id, table_id))
 
 def get_newline_json(json_file):
-    import json
-    import ndjson
-    import os
+
+    """Converts JSON to NEWLINE DELIMITED JSON for BigQuery ingest
+        Args:
+              json_file (str) :
+                  Path to json file to upload to BigQuery
+          Returns:
+              (str) Path to a new .json file. File is named oldfilename+'_nld.json'. This will be the file to upload to bigquery.
+          """
 
     with open(json_file) as file:
         data = json.load(file)
@@ -162,9 +238,22 @@ def get_newline_json(json_file):
         new_file.write(nld_data)
     return filename
 
+
 def load_json_to_bq(json_file,company, handle):
-    import google.cloud.bigquery as bq
-    import os
+
+    """Loads JSON data from local file system to BigQuery
+       Args:
+             json_file (str) :
+                 Path to json file to upload to BigQuery
+             company (str):
+                 Company symbol that will serve as dataset ID in BigQuery.
+             handle (str):
+                 Twitter handle that will be a part of the table ID in BigQuery.
+
+       Returns:
+             (None) Prints upload job result to command line.
+    """
+
 
     if not(os.path.exists(json_file)):
         print("No tweet was created by {} : nothing to upload to BigQuery".format(handle))
@@ -202,8 +291,11 @@ def load_json_to_bq(json_file,company, handle):
 
 
 def run():
-    import argparse
+    """Parses command line arguments and calls other methods.
 
+       Returns:
+             (None)
+    """
     parser = argparse.ArgumentParser()
     # financial data from barchart API
 
@@ -221,14 +313,13 @@ def run():
     parser.add_argument("--jsonFilePath", dest="JSON_FILEPATH", help="Enter the full path where you would like to save your JSON results", default="tweets.json")
 
     app_args= parser.parse_args()
-    #get_financial_data(app_args.COMPANY,app_args.FROM_DAYS,app_args.FILEPATH, app_args.BARCHART_KEY)
+    get_financial_data(app_args.COMPANY,app_args.FROM_DAYS,app_args.FILEPATH, app_args.BARCHART_KEY)
     get_twitter_data(app_args.CONSUMER_KEY, app_args.CONSUMER_SECRET, app_args.TOKEN_KEY, app_args.TOKEN_SECRET, app_args.TWITTER_HANDLE, app_args.JSON_FILEPATH, app_args.FROM_DAYS)
-    #load_csv_to_bq(app_args.FILEPATH,app_args.COMPANY)
+    load_csv_to_bq(app_args.FILEPATH,app_args.COMPANY)
     load_json_to_bq(app_args.JSON_FILEPATH, app_args.COMPANY, app_args.TWITTER_HANDLE)
 
 
 
 if __name__ == '__main__':
-    import logging
     logging.getLogger().setLevel(logging.INFO)
     run()
