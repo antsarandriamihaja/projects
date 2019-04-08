@@ -45,4 +45,4 @@ Restart cron for job to occur:
 1. Ensure duplicates are not stored in BigQuery before data ingestion.
 2. Improve most frequent word count in tweets by trouble shooting stop words used. 
 3. For portability, create a python package for code, along with the setup and requirement files.
-4. If the code is to run on the Cloud, need to use App Engine Cron Service.
+4. For recurring job running on the Cloud, need to use App Engine Cron Service.
