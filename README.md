@@ -11,7 +11,7 @@ The purpose of this project is to:
 In this repository, you will find three files of interest:
 1. _Apple_data.py:_ contains the code to get the stock data from Barchart API, the tweets data from the Twitter API, and to load both data into BigQuery.
 2. _Data Audit & Analysis - Stock Data.ipynb:_ contains data audit, analysis from Apple's stock market data. 
-3. _Data Audit & Analysis - Tweets.ipynb:_ contains data audit, analysis, and insights from @realDonaldTrump's tweets. 
+3. _Tweets_analysis.ipynb:_ contains data audit, analysis, and insights from @realDonaldTrump's tweets. 
 4. BigQuery dataset can be publicly viewed here: https://console.cloud.google.com/bigquery?project=test-project-datalab-225214&p=test-project-datalab-225214&d=AAPL&t=tweets_realdonaldtrump&page=table
 
 ### **Requirements:**
