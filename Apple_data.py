@@ -34,7 +34,7 @@ def get_financial_data(company, delay, destPath, barchartKey):
 
 
 
-def get_twitter_data(consumer_key, consumer_secret, token_key, token_secret, handle, json_file):
+def get_twitter_data(consumer_key, consumer_secret, token_key, token_secret, handle, json_file, delay):
     import twitter
     import json
 
@@ -45,23 +45,21 @@ def get_twitter_data(consumer_key, consumer_secret, token_key, token_secret, han
                       access_token_secret=token_secret)
 
 
-    # Twitter's public API allows max=7 days of tweet history.
-    # Twitter API does not allow to get/search for tweets by date directly
+
     # GetUserTimeLine method will return only up to 3200 most recent tweets.
-    # Since the requirement was to get 30 days of tweets, and that the maximum I can go back to is only 7 days, getting the max tweets was a reasonable workaround
 
     result = api.GetUserTimeline(screen_name=handle, count=3200)
 
-    if (len(result) > 0): #if there was any tweet posted by the specified user handle (up to 7days history can be retrieved)
+    if (len(result) > 0):
         tweets =[tweet.AsDict() for tweet in result]
-        tweets_posted = get_all_tweets(tweets)
+        tweets_posted = get_all_tweets(tweets, delay)
 
         # write json data
         with open(json_file, 'w') as outfile:
             json.dump(tweets_posted, outfile, indent=4, sort_keys=True)
 
 
-    else: #if the user didn't update their status in the last 7days, retrieve tweets that mention the user and store them in file
+    else:
         query = 'q=to%3A' + handle
         mentions = api.GetSearch(raw_query=query)
 
@@ -74,26 +72,32 @@ def get_twitter_data(consumer_key, consumer_secret, token_key, token_secret, han
                 json.dump(tweets_mentionned, outfile, indent=4, sort_keys=True)
 
 
-def get_all_tweets(tweets):
+def get_all_tweets(tweets, delay):
+    import datetime
+    now = datetime.datetime.now()
+    start_date = now + datetime.timedelta(-delay)
+    end_date = now
 
     tweets_found = []
     for tweet in tweets:
-        location = None
-        retweet_count = 0
-        if ("location" in tweet["user"]):
-            location = tweet["user"]["location"]
-        if ("retweet_count" in tweet):
-            retweet_count = tweet["retweet_count"]
-        res = {
-            "created_at": tweet["created_at"],
-            "text": tweet["text"],
-            "location": location,
-            "screen_name": tweet["user"]["screen_name"],
-            "name": tweet["user"]["name"],
-            "hashtags": tweet["hashtags"],
-            "retweet_count": retweet_count
-        }
-        tweets_found.append(res)
+        if tweet["created_at"] < end_date and tweet["created_at"] > start_date:
+
+            location = None
+            retweet_count = 0
+            if ("location" in tweet["user"]):
+                location = tweet["user"]["location"]
+            if ("retweet_count" in tweet):
+                retweet_count = tweet["retweet_count"]
+            res = {
+                "created_at": tweet["created_at"],
+                "text": tweet["text"],
+                "location": location,
+                "screen_name": tweet["user"]["screen_name"],
+                "name": tweet["user"]["name"],
+                "hashtags": tweet["hashtags"],
+                "retweet_count": retweet_count
+            }
+            tweets_found.append(res)
 
     return tweets_found
 
@@ -163,7 +167,7 @@ def load_json_to_bq(json_file,company, handle):
     import os
 
     if not(os.path.exists(json_file)):
-        print("No tweet was created by {} in the last 7 days: nothing to upload to BigQuery".format(handle))
+        print("No tweet was created by {} : nothing to upload to BigQuery".format(handle))
         return
 
     #convert JSON to newline delimited JSON format
@@ -217,9 +221,9 @@ def run():
     parser.add_argument("--jsonFilePath", dest="JSON_FILEPATH", help="Enter the full path where you would like to save your JSON results", default="tweets.json")
 
     app_args= parser.parse_args()
-    get_financial_data(app_args.COMPANY,app_args.FROM_DAYS,app_args.FILEPATH, app_args.BARCHART_KEY)
-    get_twitter_data(app_args.CONSUMER_KEY, app_args.CONSUMER_SECRET, app_args.TOKEN_KEY, app_args.TOKEN_SECRET, app_args.TWITTER_HANDLE, app_args.JSON_FILEPATH)
-    load_csv_to_bq(app_args.FILEPATH,app_args.COMPANY)
+    #get_financial_data(app_args.COMPANY,app_args.FROM_DAYS,app_args.FILEPATH, app_args.BARCHART_KEY)
+    get_twitter_data(app_args.CONSUMER_KEY, app_args.CONSUMER_SECRET, app_args.TOKEN_KEY, app_args.TOKEN_SECRET, app_args.TWITTER_HANDLE, app_args.JSON_FILEPATH, app_args.FROM_DAYS)
+    #load_csv_to_bq(app_args.FILEPATH,app_args.COMPANY)
     load_json_to_bq(app_args.JSON_FILEPATH, app_args.COMPANY, app_args.TWITTER_HANDLE)
 
 
